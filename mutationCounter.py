@@ -34,15 +34,42 @@ def main(infile_F, infile_R):
     subprocess.call(["flash", "-M", "140", "-t", "1", infile_F, infile_R])
 
     # run water on merged reads
-    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="out.extendedFrags.fastq", gapopen=10, gapextend=0.5, outfile="waterA.txt")
-    stdout, stderr = water_cline()
+    with open("out.extendedFrags.fastq", "rU") as merged:
+        for (title, seq, qual) in FastqGeneralIterator(merged):
+            with open("read.fasta", "w") as readfile:
+                readfile.write(">read")
+                readfile.write(seq)
+            water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt")
+            stdout, stderr = water_cline()
+            with open("water.txt", "rU") as waterfile:
+                for line in waterfile:
+                    if len(line.split()) > 1:
+                        if line.split()[1] == 'Identity:':
+                            identity = line.split()[3]
+                            identity = identity[1:3]
+                            if int(identity) > 90:
+                                pass = True
+            if not pass:
+                with open("read.fasta", "w") as readfile:
+                    readfile.write(">read")
+                    seq_rc = revcomp(seq)
+                    readfile.write(seq_rc)
+                water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt")
+                stdout, stderr = water_cline()
+                with open("water.txt", "rU") as waterfile:
+                    for line in waterfile:
+                        if len(line.split()) > 1:
+                            if line.split()[1] == 'Identity:':
+                                identity = line.split()[3]
+                                identity = identity[1:3]
+                                if int(identity) > 90:
+                                    pass = True
+            if pass:
+                indexList.append(indexFinder('water.txt'))
+            
 
-    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="out.extendedFrags.fastq", gapopen=10, gapextend=0.5, outfile="waterB.txt")
+    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="out.extendedFrags.fastq", gapopen=10, gapextend=0.5, outfile="water.txt")
     stdout, stderr = water_cline()
-    with open('waterA.txt', 'rU') as waterA:
-        with open('waterB.txt', 'rU') as waterB:
-            for lineA, lineB in itertools.izip(waterA, waterB):
-                if lineA.split()[1] == 'Identity:':
                     
     indexList = indexFinder('water.txt')
 
