@@ -18,7 +18,7 @@ from Bio.SeqIO.QualityIO import FastqGeneralIterator
 from Bio.Emboss.Applications import WaterCommandline
 
 
-def main(infile_F, infile_R):
+def main(forward_paired, forward_unpaired, reverse_paired, reverse_unpaired):
 
     fakeFASTQ = ''
     notAligned = 0
@@ -30,19 +30,39 @@ def main(infile_F, infile_R):
     # take trimmed paired-end FASTQ files as input
     # run FLASH to combine overlapping read pairs
     # or remove this line and add to shell script
-    subprocess.call(["flash", "-M", "140", "-t", "1", infile_F, infile_R])
+    subprocess.call(["flash", "-M", "140", "-t", "1", forward_paired, reverse_paired])
 
     # merged read pairs
     with open("fakeFASTQ.fastq", "w") as fakeFASTQ:
-   #     with open("out.extendedFrags.fastq", "rU") as merged:
-   #         for (title, seq, qual) in FastqGeneralIterator(merged):
-   #             index1, index2, notAligned, seq = align_and_index(seq, notAligned)
-   #             if index1 and index2:
-   #                 fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
-   #                 if len(fakeSeq) != len(wt):
-   #                     wrongLength += 1
-   #                     continue
-   #                 fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+        with open("out.extendedFrags.fastq", "rU") as merged:
+            for (title, seq, qual) in FastqGeneralIterator(merged):
+                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+                if index1 and index2:
+                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+                    if len(fakeSeq) != len(wt):
+                        wrongLength += 1
+                        continue
+                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+
+        with open(forward_unpaired, "rU") as merged:
+            for (title, seq, qual) in FastqGeneralIterator(merged):
+                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+                if index1 and index2:
+                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+                    if len(fakeSeq) != len(wt):
+                        wrongLength += 1
+                        continue
+                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+
+        with open(reverse_unpaired, "rU") as merged:
+            for (title, seq, qual) in FastqGeneralIterator(merged):
+                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+                if index1 and index2:
+                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+                    if len(fakeSeq) != len(wt):
+                        wrongLength += 1
+                        continue
+                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
         # unmerged (non-overlapping) read pairs
         with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
@@ -57,9 +77,9 @@ def main(infile_F, infile_R):
                             fakeSeq = buildFakeSeq(seq, seq_R, wt, index1, index2, index3, index4)
                             if len(fakeSeq) != len(wt):
                                 wrongLength += 1
-                                print fakeSeq
-                                print index1, index2, index3, index4
-                                print seq, seq_R
+    #                            print fakeSeq
+     #                           print index1, index2, index3, index4
+      #                          print seq, seq_R
                                 continue
                             fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
@@ -193,7 +213,9 @@ def fakeFASTQwriter(fakeSeq, title, handle):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('infile_F')
-    parser.add_argument('infile_R')
+    parser.add_argument('forward_paired')
+    parser.add_argument('forward_unpaired')
+    parser.add_argument('reverse_paired')
+    parser.add_argument('reverse_unpaired')    
     args = parser.parse_args()
-    main(args.infile_F, args.infile_R)
+    main(args.forward_paired, args.forward_unpaired, args.reverse_paired, args.reverse_unpaired)
