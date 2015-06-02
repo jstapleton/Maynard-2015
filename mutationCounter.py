@@ -6,21 +6,20 @@
 #
 #   This program takes short reads from shotgun sequencing of mutant
 #       libraries and creates FASTQ files compatible with ENRICH.
-#       
+#
 #
 #############################################################################
 
 import argparse
-import time
 import subprocess
 import os
 import itertools
 from Bio.SeqIO.QualityIO import FastqGeneralIterator
 from Bio.Emboss.Applications import WaterCommandline
 
+
 def main(infile_F, infile_R):
 
-    alignCheck = 0
     fakeFASTQ = ''
     notAligned = 0
     wrongLength = 0
@@ -33,75 +32,40 @@ def main(infile_F, infile_R):
     # or remove this line and add to shell script
     subprocess.call(["flash", "-M", "140", "-t", "1", infile_F, infile_R])
 
-    # run water on each merged read to align to wt
+    # merged read pairs
     with open("fakeFASTQ.fastq", "w") as fakeFASTQ:
         with open("out.extendedFrags.fastq", "rU") as merged:
             for (title, seq, qual) in FastqGeneralIterator(merged):
-                index1, index2, notAligned = align_and_index(seq, notAligned)
-                fakeSeq = buildFakeSeq(str(seq), 0, wt, index1, index2, 0, 0)
-                if len(fakeSeq) != len(wt):
-                    wrongLength += 1
-                    continue
-                fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
-
-
-
-   # unmerged (non-overlapping) read pairs
-        with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
-            with open("out.notCombined_2.fastq", 'rU') as unmerged_R:
-                f_iter = FastqGeneralIterator(unmerged_F)
-                r_iter = FastqGeneralIterator(unmerged_R)
-                for (title, seq, qual), (title_R, seq_R, qual_R) in itertools.izip(f_iter, r_iter):
-                    index1, index2, notAligned = align_and_index(seq, notAligned)
-                    index3, index4, notAligned = align_and_index(seq_R, notAligned)
-                    fakeSeq = buildFakeSeq(seq, seq_R, wt, index1, index2, index3, index4)
+                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+                if index1 and index2:
+                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
                     if len(fakeSeq) != len(wt):
                         wrongLength += 1
                         continue
                     fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
-
+        # unmerged (non-overlapping) read pairs
+        with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
+            with open("out.notCombined_2.fastq", 'rU') as unmerged_R:
+                f_iter = FastqGeneralIterator(unmerged_F)
+                r_iter = FastqGeneralIterator(unmerged_R)
+                for (title, seq, qual), (title_R, seq_R, qual_R) in itertools.izip(f_iter, r_iter):
+                    index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+                    if index1 and index2:
+                        index3, index4, notAligned, seq_R = align_and_index(seq_R, notAligned)
+                        if index3 and index4:
+                            fakeSeq = buildFakeSeq(seq, seq_R, wt, index1, index2, index3, index4)
+                            if len(fakeSeq) != len(wt):
+                                wrongLength += 1
+                                continue
+                            fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
     print notAligned, wrongLength
-                        
 
-#
-#    # run water on unmerged reads
-#    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="out.notCombined_1.fastq", gapopen=10, gapextend=0.5, outfile="water_F.txt")
-#    stdout, stderr = water_cline()
-#    indexList1 = indexFinder('water_F.txt')
-#    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="out.notCombined_2.fastq", gapopen=10, gapextend=0.5, outfile="water_R.txt")
-#    stdout, stderr = water_cline()
-#    indexList2 = indexFinder('water_R.txt')
-#
-#    # iterate over unmerged reads from FLASH
-#    with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
-#        with open("out.notCombined_2.fastq", 'rU') as unmerged_R:
-#            f_iter = FastqGeneralIterator(unmerged_F)
-#            r_iter = FastqGeneralIterator(unmerged_R)
-#            for (title, seq, qual), (title_R, seq_R, qual_R), (index1, index2), (index3, index4) in itertools.izip(f_iter, r_iter, indexList1, indexList2):
-#                fakeFASTQ.append(title + '\n')
-#                seq_R_rc = revcomp(seq_R)
-#                fakeSeq = buildFakeSeq(seq, seq_R_rc, wt, index1, index2, index3, index4)
-#                fakeFASTQ.append(fakeSeq + '\n')
-#                fakeFASTQ.append('+\n')
-#                fakeQual = ''
-#                fakeQual = ['' + 'A' for ch in fakeSeq]
-#                fakeQual = ''.join(fakeQual)
-#                fakeFASTQ.append(fakeQual)
     return 0
 
 
 ######## Function definitions ##############
-
-def timer(readCount, start_time):
-    # Print time elapsed every 100000 reads processed
-    readCount += 1
-    if readCount % 100000 == 0:
-        print readCount
-        print time.time() - start_time, "seconds"
-        start_time = time.time()
-    return 0
 
 
 def revcomp(seq):
@@ -113,10 +77,17 @@ def revcomp(seq):
 def buildFakeSeq(seq_F, seq_R_rc, wt, index1, index2, index3, index4):
     '''Construct a FASTQ compatible with Enrich'''
     if seq_R_rc:
-        fakeRead = wt[:index1-1] + seq_F + wt[index2:index3] + seq_R_rc + wt[index4:]
+        if index1 < index3:
+            if index2 > index3 - 1:
+                index2 = index3 - 1
+            fakeRead = wt[:index1 - 1] + seq_F + wt[index2:index3 - 1] + seq_R_rc + wt[index4:]
+        else:
+            if index4 > index1 - 1:
+                index4 = index1 -1
+            fakeRead = wt[:index3 - 1] + seq_F + wt[index4:index1 - 1] + seq_R_rc + wt[index2:]
     else:
         fakeRead = wt[:index1-1] + seq_F + wt[index2:]
-    return fakeRead 
+    return fakeRead
 
 
 def indexFinder(infile):
@@ -151,7 +122,7 @@ def runWater():
         os.remove('water.txt')
     water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt", aformat='markx10')
     stdout, stderr = water_cline()
-    return 0 
+    return 0
 
 
 def alignChecker():
@@ -170,7 +141,7 @@ def wtParser():
     with open('wt.fasta', 'rU') as wildtype:
         wildtype = wildtype.read()
     if wildtype[0] == ">":
-        wildtype = wildtype.split('\n',1)[1]
+        wildtype = wildtype.split('\n', 1)[1]
     wt = ''.join([line.strip() for line in wildtype.split('\n')])
     return wt
 
@@ -202,7 +173,7 @@ def align_and_index(seq, notAligned):
     else:
         # find wt positions where the read aligns
         index1, index2 = indexFinder('water.txt')
-    return index1, index2, notAligned
+    return index1, index2, notAligned, seq
 
 
 def fakeFASTQwriter(fakeSeq, title, handle):
