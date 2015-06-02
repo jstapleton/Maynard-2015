@@ -21,21 +21,15 @@ from Bio.Emboss.Applications import WaterCommandline
 def main(infile_F, infile_R):
 
     alignCheck = 0
-    COMPLEMENT_DICT = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G', 'N': 'N'}
     fakeFASTQ = ''
     notAligned = 0
     wrongLength = 0
 
     # open file containing wild-type sequence and pull it out as a string
-    with open('wt.fasta', 'rU') as wildtype:
-        wildtype = wildtype.read()
-    if wildtype[0] == ">":
-        wildtype = wildtype.split('\n',1)[1]
-    wt = [''.join(line) for line in wildtype.split('\n')]
-    wt = ''.join(wt)
+    wt = wtParser()
 
-    #take trimmed paired-end FASTQ files as input
-    #run FLASH to combine overlapping read pairs
+    # take trimmed paired-end FASTQ files as input
+    # run FLASH to combine overlapping read pairs
     # or remove this line and add to shell script
     subprocess.call(["flash", "-M", "140", "-t", "1", infile_F, infile_R])
 
@@ -43,40 +37,30 @@ def main(infile_F, infile_R):
     with open("fakeFASTQ.fastq", "w") as fakeFASTQ:
         with open("out.extendedFrags.fastq", "rU") as merged:
             for (title, seq, qual) in FastqGeneralIterator(merged):
-                # trim sequences with N's
-                seq = Ntest(seq)
-                # create a file to write each read to as fasta
-                with open("read.fasta", "w") as readsfile:
-                    readsfile.write(">read\n")
-                    readsfile.write(seq)
-                # generate water command line and call it
-                runWater()
-                # Check whether the read was in the right orientation
-                #   If the Identity score of the alignment is low, 
-                #   take the revcomp and try aligning again
-                alignCheck = alignChecker() 
-                if alignCheck:
-                    with open("read.fasta", "w") as readfile:
-                        readfile.write(">read\n")
-                        seq = revcomp(seq, COMPLEMENT_DICT)
-                        readfile.write(seq)
-                    runWater()
-                    alignCheck = alignChecker()
-                if alignCheck:
-                    notAligned += 1
+                index1, index2, notAligned = align_and_index(seq, notAligned)
+                fakeSeq = buildFakeSeq(str(seq), 0, wt, index1, index2, 0, 0)
+                if len(fakeSeq) != len(wt):
+                    wrongLength += 1
                     continue
-                else:
-                    # find wt positions where the read aligns
-                    index1, index2 = indexFinder('water.txt')
-                    fakeSeq = buildFakeSeq(str(seq), 0, wt, index1, index2, 0, 0)
+                fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+
+
+
+   # unmerged (non-overlapping) read pairs
+        with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
+            with open("out.notCombined_2.fastq", 'rU') as unmerged_R:
+                f_iter = FastqGeneralIterator(unmerged_F)
+                r_iter = FastqGeneralIterator(unmerged_R)
+                for (title, seq, qual), (title_R, seq_R, qual_R) in itertools.izip(f_iter, r_iter):
+                    index1, index2, notAligned = align_and_index(seq, notAligned)
+                    index3, index4, notAligned = align_and_index(seq_R, notAligned)
+                    fakeSeq = buildFakeSeq(seq, seq_R, wt, index1, index2, index3, index4)
                     if len(fakeSeq) != len(wt):
                         wrongLength += 1
                         continue
-                    fakeFASTQ.write('@' + title + '\n')
-                    fakeFASTQ.write(fakeSeq + '\n')
-                    fakeFASTQ.write('+\n')
-                    fakeQual = ''.join(['A' for ch in fakeSeq])
-                    fakeFASTQ.write(fakeQual + '\n')
+                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+
+
 
     print notAligned, wrongLength
                         
@@ -120,7 +104,8 @@ def timer(readCount, start_time):
     return 0
 
 
-def revcomp(seq, COMPLEMENT_DICT):
+def revcomp(seq):
+    COMPLEMENT_DICT = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G', 'N': 'N'}
     rc = ''.join([COMPLEMENT_DICT[base] for base in seq])[::-1]
     return rc
 
@@ -179,6 +164,55 @@ def alignChecker():
                     if float(identity) > 90:
                         return 0
     return 1
+
+
+def wtParser():
+    with open('wt.fasta', 'rU') as wildtype:
+        wildtype = wildtype.read()
+    if wildtype[0] == ">":
+        wildtype = wildtype.split('\n',1)[1]
+    wt = ''.join([line.strip() for line in wildtype.split('\n')])
+    return wt
+
+
+def align_and_index(seq, notAligned):
+    # trim sequences with N's
+    seq = Ntest(seq)
+    # create a file to write each read to as fasta
+    with open("read.fasta", "w") as readsfile:
+        readsfile.write(">read\n")
+        readsfile.write(seq)
+    # generate water command line and call it
+    runWater()
+    # Check whether the read was in the right orientation
+    #   If the Identity score of the alignment is low,
+    #   take the revcomp and try aligning again
+    alignCheck = alignChecker()
+    if alignCheck:
+        with open("read.fasta", "w") as readfile:
+            readfile.write(">read\n")
+            seq = revcomp(seq)
+            readfile.write(seq)
+        runWater()
+        alignCheck = alignChecker()
+    if alignCheck:
+        notAligned += 1
+        index1 = 0
+        index2 = 0
+    else:
+        # find wt positions where the read aligns
+        index1, index2 = indexFinder('water.txt')
+    return index1, index2, notAligned
+
+
+def fakeFASTQwriter(fakeSeq, title, handle):
+    handle.write('@' + title + '\n')
+    handle.write(fakeSeq + '\n')
+    handle.write('+\n')
+    fakeQual = ''.join(['A' for ch in fakeSeq])
+    handle.write(fakeQual + '\n')
+    return 0
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
