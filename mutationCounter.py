@@ -7,6 +7,11 @@
 #   This program takes short reads from shotgun sequencing of mutant
 #       libraries and creates FASTQ files compatible with ENRICH.
 #
+#   The program fills in wild-type sequence around the short reads
+#       to create full-length sequences, and puts in a made-up 
+#       quality score.
+#
+#   Overlapping read pairs are merged by FLASH. 
 #
 #############################################################################
 
@@ -113,7 +118,7 @@ def buildFakeSeq(seq_F, seq_R_rc, wt, index1, index2, index3, index4):
             fakeRead = wt[:index3 - 1] + seq_R_rc + wt[index4:index1 - 1] + seq_F[diff:] + wt[index2:]
     else:
         fakeRead = wt[:index1-1] + seq_F + wt[index2:]
-    return fakeRead
+    return fakeRead.upper()
 
 
 def indexFinder(infile):
