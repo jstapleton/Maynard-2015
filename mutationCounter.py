@@ -34,15 +34,15 @@ def main(infile_F, infile_R):
 
     # merged read pairs
     with open("fakeFASTQ.fastq", "w") as fakeFASTQ:
-        with open("out.extendedFrags.fastq", "rU") as merged:
-            for (title, seq, qual) in FastqGeneralIterator(merged):
-                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
-                if index1 and index2:
-                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
-                    if len(fakeSeq) != len(wt):
-                        wrongLength += 1
-                        continue
-                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+   #     with open("out.extendedFrags.fastq", "rU") as merged:
+   #         for (title, seq, qual) in FastqGeneralIterator(merged):
+   #             index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+   #             if index1 and index2:
+   #                 fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+   #                 if len(fakeSeq) != len(wt):
+   #                     wrongLength += 1
+   #                     continue
+   #                 fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
         # unmerged (non-overlapping) read pairs
         with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
@@ -57,6 +57,9 @@ def main(infile_F, infile_R):
                             fakeSeq = buildFakeSeq(seq, seq_R, wt, index1, index2, index3, index4)
                             if len(fakeSeq) != len(wt):
                                 wrongLength += 1
+                                print fakeSeq
+                                print index1, index2, index3, index4
+                                print seq, seq_R
                                 continue
                             fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
@@ -77,14 +80,17 @@ def revcomp(seq):
 def buildFakeSeq(seq_F, seq_R_rc, wt, index1, index2, index3, index4):
     '''Construct a FASTQ compatible with Enrich'''
     if seq_R_rc:
+        diff = 0
         if index1 < index3:
             if index2 > index3 - 1:
+                diff = index2 - index3 + 1
                 index2 = index3 - 1
-            fakeRead = wt[:index1 - 1] + seq_F + wt[index2:index3 - 1] + seq_R_rc + wt[index4:]
+            fakeRead = wt[:index1 - 1] + seq_F + wt[index2:index3 - 1] + seq_R_rc[diff:] + wt[index4:]
         else:
             if index4 > index1 - 1:
+                diff = index4 - index1 + 1
                 index4 = index1 -1
-            fakeRead = wt[:index3 - 1] + seq_F + wt[index4:index1 - 1] + seq_R_rc + wt[index2:]
+            fakeRead = wt[:index3 - 1] + seq_R_rc + wt[index4:index1 - 1] + seq_F[diff:] + wt[index2:]
     else:
         fakeRead = wt[:index1-1] + seq_F + wt[index2:]
     return fakeRead
