@@ -50,39 +50,19 @@ def main(infile_F, infile_R):
                     readsfile.write(">read\n")
                     readsfile.write(seq)
                 # generate water command line and call it
-                if os.path.isfile('water.txt'):
-                    os.remove('water.txt')
-                water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt", aformat='markx10')
-                stdout, stderr = water_cline()
+                runWater()
                 # Check whether the read was in the right orientation
                 #   If the Identity score of the alignment is low, 
                 #   take the revcomp and try aligning again
-                alignCheck = 0 
-                indexList = []
-                with open("water.txt", "rU") as waterfile:
-                    for line in waterfile:
-                        if len(line.split()) > 1:
-                            if line.split()[1] == 'Identity:':
-                                identity = line.split()[3]
-                                identity = identity[1:4]
-                                if float(identity) > 90:
-                                    alignCheck = 1
-                if not alignCheck:
+                alignCheck = alignChecker() 
+                if alignCheck:
                     with open("read.fasta", "w") as readfile:
                         readfile.write(">read\n")
                         seq = revcomp(seq, COMPLEMENT_DICT)
                         readfile.write(seq)
-                    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt", aformat='markx10')
-                    stdout, stderr = water_cline()
-                    with open("water.txt", "rU") as waterfile:
-                        for line in waterfile:
-                            if len(line.split()) > 1:
-                                if line.split()[1] == 'Identity:':
-                                    identity = line.split()[3]
-                                    identity = identity[1:4]
-                                    if float(identity) > 90:
-                                        alignCheck = 1
-                if not alignCheck:
+                    runWater()
+                    alignCheck = alignChecker()
+                if alignCheck:
                     notAligned += 1
                     continue
                 else:
@@ -180,6 +160,25 @@ def Ntest(seq):
         seq = seq[:i-1]
     return seq
 
+
+def runWater():
+    if os.path.isfile('water.txt'):
+        os.remove('water.txt')
+    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt", aformat='markx10')
+    stdout, stderr = water_cline()
+    return 0 
+
+
+def alignChecker():
+    with open("water.txt", "rU") as waterfile:
+        for line in waterfile:
+            if len(line.split()) > 1:
+                if line.split()[1] == 'Identity:':
+                    identity = line.split()[3]
+                    identity = identity[1:4]
+                    if float(identity) > 90:
+                        return 0
+    return 1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
