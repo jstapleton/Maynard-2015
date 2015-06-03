@@ -15,6 +15,7 @@
 #
 #############################################################################
 
+
 import argparse
 import subprocess
 import os
@@ -97,13 +98,16 @@ def main(forward_paired, forward_unpaired, reverse_paired, reverse_unpaired):
 
 
 def revcomp(seq):
+    """Returns the reverse complement of a DNA sequence."""
     COMPLEMENT_DICT = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G', 'N': 'N'}
     rc = ''.join([COMPLEMENT_DICT[base] for base in seq])[::-1]
     return rc
 
 
 def buildFakeSeq(seq_F, seq_R_rc, wt, index1, index2, index3, index4):
-    '''Construct a FASTQ compatible with Enrich'''
+    """Builds a fake full-length DNA sequence line consisting of one
+    merged read or two short reads filled in with wild-type sequence.
+    """
     if seq_R_rc:
         diff = 0
         if index1 < index3:
@@ -122,7 +126,7 @@ def buildFakeSeq(seq_F, seq_R_rc, wt, index1, index2, index3, index4):
 
 
 def indexFinder(infile):
-    ''' Searches output file from water for alignment position indexes '''
+    """Searches the water output file for alignment position indexes."""
     with open(infile, 'rU') as waterdata:
         for line in waterdata:
             if len(line.split()) > 1:
@@ -135,7 +139,10 @@ def indexFinder(infile):
 
 
 def Ntest(seq):
-    "trim sequences with N's"
+    """Trims sequences with N's.
+    Removes N from the first position,
+    truncates the sequence at subsequent N's. 
+    """
     if seq[0] == 'N':
         seq = seq[1:]
     Ntest = 0
@@ -149,6 +156,9 @@ def Ntest(seq):
 
 
 def runWater():
+    """Removes existing water.txt file,
+    generates a water command line, and runs water.
+    """
     if os.path.isfile('water.txt'):
         os.remove('water.txt')
     water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt", aformat='markx10')
@@ -157,6 +167,9 @@ def runWater():
 
 
 def alignChecker():
+    """Checks whether a water alignment has
+    an identity match of at least 90%.
+    """
     with open("water.txt", "rU") as waterfile:
         for line in waterfile:
             if len(line.split()) > 1:
@@ -169,6 +182,9 @@ def alignChecker():
 
 
 def wtParser():
+    """Takes a wild-type DNA sequence in FASTA format
+    and reads it into a string.
+    """
     with open('wt.fasta', 'rU') as wildtype:
         wildtype = wildtype.read()
     if wildtype[0] == ">":
@@ -178,6 +194,12 @@ def wtParser():
 
 
 def align_and_index(seq, notAligned):
+    """Runs a pipeline to align a sequence (merged or unmerged
+    sequencing reads) to a wild-type reference with the EMBOSS
+    water local alignment program, align the reverse complement
+    if the first alignment was poor, and parse and return the
+    wt positions where the alignment begins and ends.
+    """
     # trim sequences with N's
     seq = Ntest(seq)
     # create a file to write each read to as fasta
@@ -208,6 +230,7 @@ def align_and_index(seq, notAligned):
 
 
 def fakeFASTQwriter(fakeSeq, title, handle):
+    """Writes the four lines of a fake FASTQ."""
     handle.write('@' + title + '\n')
     handle.write(fakeSeq + '\n')
     handle.write('+\n')
