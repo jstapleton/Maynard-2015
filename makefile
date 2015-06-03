@@ -1,5 +1,5 @@
 
-all: fakeFASTQ.fastq enrichFiles forward_paired.fq reverse_paired.fq forward_unpaired.fq reverse_unpaired.fq
+all: forward_paired.fq reverse_paired.fq forward_unpaired.fq reverse_unpaired.fq fakeFASTQ.fastq enrichFiles
 
 
 clean: 
