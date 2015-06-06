@@ -8,10 +8,10 @@
 #       libraries and creates FASTQ files compatible with ENRICH.
 #
 #   The program fills in wild-type sequence around the short reads
-#       to create full-length sequences, and puts in a made-up 
+#       to create full-length sequences, and puts in a made-up
 #       quality score.
 #
-#   Overlapping read pairs are merged by FLASH. 
+#   Overlapping read pairs are merged by FLASH.
 #
 #############################################################################
 
@@ -39,55 +39,58 @@ def main(forward_paired, forward_unpaired, reverse_paired, reverse_unpaired):
     subprocess.call(["flash", "-M", "140", "-t", "1", forward_paired, reverse_paired])
 
     # merged read pairs
+    notAligned = align_and_index('out.extendedFrags.fastq', notAligned)
     with open("fakeFASTQ.fastq", "w") as fakeFASTQ:
-        with open("out.extendedFrags.fastq", "rU") as merged:
-            for (title, seq, qual) in FastqGeneralIterator(merged):
-                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
-                if index1 and index2:
-                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
-                    if len(fakeSeq) != len(wt):
-                        wrongLength += 1
-                        continue
-                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
-
-        with open(forward_unpaired, "rU") as merged:
-            for (title, seq, qual) in FastqGeneralIterator(merged):
-                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
-                if index1 and index2:
-                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
-                    if len(fakeSeq) != len(wt):
-                        wrongLength += 1
-                        continue
-                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
-
-        with open(reverse_unpaired, "rU") as merged:
-            for (title, seq, qual) in FastqGeneralIterator(merged):
-                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
-                if index1 and index2:
-                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
-                    if len(fakeSeq) != len(wt):
-                        wrongLength += 1
-                        continue
-                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
-
-        # unmerged (non-overlapping) read pairs
-        with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
-            with open("out.notCombined_2.fastq", 'rU') as unmerged_R:
-                f_iter = FastqGeneralIterator(unmerged_F)
-                r_iter = FastqGeneralIterator(unmerged_R)
-                for (title, seq, qual), (title_R, seq_R, qual_R) in itertools.izip(f_iter, r_iter):
-                    index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+        with open('indexes.txt', 'rU') as indexes:
+            with open('out.extendedFrags.fastq', 'rU') as merged:
+                f_iter = FastqGeneralIterator(merged)
+                for (title, seq, qual), indexline in itertools.izip(f_iter, indexes):
+                    index1, index2 = indexline.split()
                     if index1 and index2:
-                        index3, index4, notAligned, seq_R = align_and_index(seq_R, notAligned)
-                        if index3 and index4:
-                            fakeSeq = buildFakeSeq(seq, seq_R, wt, index1, index2, index3, index4)
-                            if len(fakeSeq) != len(wt):
-                                wrongLength += 1
-    #                            print fakeSeq
-     #                           print index1, index2, index3, index4
-      #                          print seq, seq_R
-                                continue
-                            fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+                        fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+                        if len(fakeSeq) != len(wt):
+                            wrongLength += 1
+                            continue
+                        fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+
+#        with open(forward_unpaired, "rU") as merged:
+#            for (title, seq, qual) in FastqGeneralIterator(merged):
+#                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+#                if index1 and index2:
+#                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+#                    if len(fakeSeq) != len(wt):
+#                        wrongLength += 1
+#                        continue
+#                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+#
+#        with open(reverse_unpaired, "rU") as merged:
+#            for (title, seq, qual) in FastqGeneralIterator(merged):
+#                index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+#                if index1 and index2:
+#                    fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+#                    if len(fakeSeq) != len(wt):
+#                        wrongLength += 1
+#                        continue
+#                    fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+#
+#        # unmerged (non-overlapping) read pairs
+#        with open("out.notCombined_1.fastq", 'rU') as unmerged_F:
+#            with open("out.notCombined_2.fastq", 'rU') as unmerged_R:
+#                f_iter = FastqGeneralIterator(unmerged_F)
+#                r_iter = FastqGeneralIterator(unmerged_R)
+#                for (title, seq, qual), (title_R, seq_R, qual_R) in itertools.izip(f_iter, r_iter):
+#                    index1, index2, notAligned, seq = align_and_index(seq, notAligned)
+#                    if index1 and index2:
+#                        index3, index4, notAligned, seq_R = align_and_index(seq_R, notAligned)
+#                        if index3 and index4:
+#                            fakeSeq = buildFakeSeq(seq, seq_R, wt, index1, index2, index3, index4)
+#                            if len(fakeSeq) != len(wt):
+#                                wrongLength += 1
+#    #                            print fakeSeq
+#     #                           print index1, index2, index3, index4
+#      #                          print seq, seq_R
+#                                continue
+#                            fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
     print notAligned, wrongLength
 
@@ -108,6 +111,10 @@ def buildFakeSeq(seq_F, seq_R_rc, wt, index1, index2, index3, index4):
     """Builds a fake full-length DNA sequence line consisting of one
     merged read or two short reads filled in with wild-type sequence.
     """
+    index1 = int(index1)
+    index2 = int(index2)
+    index3 = int(index3)
+    index4 = int(index4)
     if seq_R_rc:
         diff = 0
         if index1 < index3:
@@ -125,23 +132,23 @@ def buildFakeSeq(seq_F, seq_R_rc, wt, index1, index2, index3, index4):
     return fakeRead.upper()
 
 
-def indexFinder(infile):
-    """Searches the water output file for alignment position indexes."""
-    with open(infile, 'rU') as waterdata:
-        for line in waterdata:
-            if len(line.split()) > 1:
-                if line.split()[1] == 'al_start:':
-                    start = int(line.split()[2])
-                if line.split()[1] == 'al_stop:':
-                    stop = int(line.split()[2])
-                    break
-    return start, stop
+def indexFinder(line):
+    """Searches the water output line
+    for alignment position indexes.
+    """
+    index = 0
+    if len(line.split()) > 1:
+        if line.split()[1] == 'al_start:':
+            index = int(line.split()[2])
+        elif line.split()[1] == 'al_stop:':
+            index = int(line.split()[2])
+    return index
 
 
 def Ntest(seq):
     """Trims sequences with N's.
     Removes N from the first position,
-    truncates the sequence at subsequent N's. 
+    truncates the sequence at subsequent N's.
     """
     if seq[0] == 'N':
         seq = seq[1:]
@@ -155,30 +162,15 @@ def Ntest(seq):
     return seq
 
 
-def runWater():
+def runWater(fastq, out):
     """Removes existing water.txt file,
     generates a water command line, and runs water.
     """
-    if os.path.isfile('water.txt'):
-        os.remove('water.txt')
-    water_cline = WaterCommandline(asequence="wt.fasta", bsequence="read.fasta", gapopen=10, gapextend=0.5, outfile="water.txt", aformat='markx10')
+    if os.path.isfile(out):
+        os.remove(out)
+    water_cline = WaterCommandline(asequence="wt.fasta", bsequence=fastq, gapopen=10, gapextend=0.5, outfile=out, aformat='markx10')
     stdout, stderr = water_cline()
     return 0
-
-
-def alignChecker():
-    """Checks whether a water alignment has
-    an identity match of at least 90%.
-    """
-    with open("water.txt", "rU") as waterfile:
-        for line in waterfile:
-            if len(line.split()) > 1:
-                if line.split()[1] == 'Identity:':
-                    identity = line.split()[3]
-                    identity = identity[1:4]
-                    if float(identity) > 90:
-                        return 0
-    return 1
 
 
 def wtParser():
@@ -193,40 +185,78 @@ def wtParser():
     return wt
 
 
-def align_and_index(seq, notAligned):
+def identity_finder(line):
+    identity = 0
+    if len(line.split()) > 1:
+        if line.split()[1] == 'Identity:':
+            identity = line.split()[3]
+            identity = identity[1:4]
+    return identity
+
+def align_and_index(fastq, notAligned):
     """Runs a pipeline to align a sequence (merged or unmerged
     sequencing reads) to a wild-type reference with the EMBOSS
     water local alignment program, align the reverse complement
     if the first alignment was poor, and parse and return the
     wt positions where the alignment begins and ends.
     """
-    # trim sequences with N's
-    seq = Ntest(seq)
-    # create a file to write each read to as fasta
-    with open("read.fasta", "w") as readsfile:
-        readsfile.write(">read\n")
-        readsfile.write(seq)
     # generate water command line and call it
-    runWater()
+    runWater(fastq, 'water_fwd.txt')
+    # reverse-complement the reads in fastq
+    with open('fastq_rc.fastq', 'w') as reverse:
+        with open(fastq, 'rU') as forward:
+            next_line_is_seq = 0
+            for line in forward:
+                if next_line_is_seq:
+                    line_rc = revcomp(line.strip())
+                    reverse.write(line_rc + '\n')
+                    next_line_is_seq = 0
+                elif line[0] == '@':
+                    next_line_is_seq = 1
+                    reverse.write(line)
+                else:
+                    reverse.write(line)
+    # run water on the reverse complements
+    runWater('fastq_rc.fastq', 'water_rc.txt')
     # Check whether the read was in the right orientation
-    #   If the Identity score of the alignment is low,
-    #   take the revcomp and try aligning again
-    alignCheck = alignChecker()
-    if alignCheck:
-        with open("read.fasta", "w") as readfile:
-            readfile.write(">read\n")
-            seq = revcomp(seq)
-            readfile.write(seq)
-        runWater()
-        alignCheck = alignChecker()
-    if alignCheck:
-        notAligned += 1
-        index1 = 0
-        index2 = 0
-    else:
-        # find wt positions where the read aligns
-        index1, index2 = indexFinder('water.txt')
-    return index1, index2, notAligned, seq
+    # Iterate over the water outfiles and pick the best match
+    # Write the alignment start and stop of the best matches
+    with open('water_fwd.txt', 'rU') as forward:
+        with open('water_rc.txt', 'rU') as reverse:
+            with open('indexes.txt', 'w') as outfile:
+                find_index_F = 0
+                find_index_R = 0
+                index1 = 0
+                index2 = 0
+                for line_F, line_R in itertools.izip(forward, reverse):
+                    # assuming water_fwd and water_rc will always be
+                    #  the same length...
+                    if not find_index_F and not find_index_R:
+                        identity_F = identity_finder(line_F)
+                        identity_R = identity_finder(line_R)
+                        if float(identity_F) > 90:
+                            find_index_F = 1
+                        elif float(identity_R) > 90:
+                            find_index_R = 1
+                    elif find_index_F:
+                        if not index1 and not index2:
+                            index1 = indexFinder(line_F)
+                        elif index1:
+                            index2 = indexFinder(line_F)
+                            outfile.write(str(index1) + ' ' + str(index2) + '\n')
+                            find_index_F = 0
+                            index1 = 0
+                            index2 = 0
+                    elif find_index_R:
+                        if not index1 and not index2:
+                            index1 = indexFinder(line_R)
+                        if index1:
+                            index2 = indexFinder(line_R)
+                            outfile.write(str(index1) + ' ' + str(index2) + '\n')
+                            find_index_R = 0
+                            index1 = 0
+                            index2 = 0
+    return notAligned
 
 
 def fakeFASTQwriter(fakeSeq, title, handle):
