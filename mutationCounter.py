@@ -58,33 +58,37 @@ def main(forward_paired, forward_unpaired, reverse_paired, reverse_unpaired):
                             continue
                         fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
-#    notAligned = align_and_index(forward_unpaired, notAligned)
-#    with open("fakeFASTQ.fastq", "a") as fakeFASTQ:
-#        with open('indexes.txt', 'rU') as indexes:
-#            with open(forward_unpaired, "rU") as merged:
-#                f_iter = FastqGeneralIterator(merged)
-#                for (title, seq, qual), indexline in itertools.izip(f_iter, indexes):
-#                    index1, index2 = indexline.split()
-#                    if index1 and index2:
-#                        fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
-#                        if len(fakeSeq) != len(wt):
-#                            wrongLength += 1
-#                            continue
-#                        fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
-#
-#    notAligned = align_and_index(reverse_unpaired, notAligned)
-#    with open("fakeFASTQ.fastq", "a") as fakeFASTQ:
-#        with open('indexes.txt', 'rU') as indexes:
-#            with open(reverse_unpaired, "rU") as merged:
-#                f_iter = FastqGeneralIterator(merged)
-#                for (title, seq, qual), indexline in itertools.izip(f_iter, indexes):
-#                    index1, index2 = indexline.split()
-#                    if index1 and index2:
-#                        fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
-#                        if len(fakeSeq) != len(wt):
-#                            wrongLength += 1
-#                            continue
-#                        fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+    notAligned = align_and_index(forward_unpaired, notAligned)
+    with open("fakeFASTQ.fastq", "a") as fakeFASTQ:
+        with open('indexes.txt', 'rU') as indexes:
+            with open(forward_unpaired, "rU") as merged:
+                f_iter = FastqGeneralIterator(merged)
+                for (title, seq, qual), indexline in itertools.izip(f_iter, indexes):
+                    index1, index2, rc_flag = indexline.split()
+                    if index1 and index2:
+                        if int(rc_flag):
+                            seq = revcomp(seq)
+                        fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+                        if len(fakeSeq) != len(wt):
+                            wrongLength += 1
+                            continue
+                        fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
+
+    notAligned = align_and_index(reverse_unpaired, notAligned)
+    with open("fakeFASTQ.fastq", "a") as fakeFASTQ:
+        with open('indexes.txt', 'rU') as indexes:
+            with open(reverse_unpaired, "rU") as merged:
+                f_iter = FastqGeneralIterator(merged)
+                for (title, seq, qual), indexline in itertools.izip(f_iter, indexes):
+                    index1, index2, rc_flag = indexline.split()
+                    if index1 and index2:
+                        if int(rc_flag):
+                            seq = revcomp(seq)
+                        fakeSeq = buildFakeSeq(seq, 0, wt, index1, index2, 0, 0)
+                        if len(fakeSeq) != len(wt):
+                            wrongLength += 1
+                            continue
+                        fakeFASTQwriter(fakeSeq, title, fakeFASTQ)
 
 
 #
