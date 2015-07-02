@@ -25,7 +25,7 @@ the same location in the gene. This is not the case in
 this randomly sheared sequencing library.
 
 The code provided here takes sequencing data from the
-randomly sheared library and creates a new fake .fastq
+randomly sheared library and creates a new .fastq
 file that is compatible with Enrich.
 
 
@@ -57,22 +57,22 @@ to a new file.
 7. Every line in the new file now corresponds to a
 seqencing read and contains the start and stop indexes
 of its best alignment to the wild-type sequence.
-These indexes are used to build a fake full-length
+These indexes are used to build a full-length
 sequence "read" consisting of wild-type sequence from
 the start of the gene to the start of the read, then the
 read, then wild-type sequence from the end of the read to
-the end of the wild-type sequence. A corresponding fake
+the end of the wild-type sequence. A corresponding
 quality score (all "A") is also generated to create a
-fake .fastq file that Enrich will accept.
+.fastq file that Enrich will accept.
 8. Steps 3-7 above are repeated for reads that were
 orphaned from their mates by Trimmomatic and read pairs
 that were not merged by FLASH. In the latter case, the
-fake read is wild-type from the start of the wild-type
+read is wild-type from the start of the wild-type
 to the start of the first read, then the first read,
 then wild-type until the start of the second read, then
 the second read, then wild-type until the end of the
 wild-type sequence.
-9. Run Enrich using the fake .fastq files.
+9. Run Enrich using the generated .fastq files.
 
 
 
