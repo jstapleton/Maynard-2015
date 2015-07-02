@@ -77,7 +77,7 @@ wild-type sequence.
 
 
 ###The script calls the following software:
-Trimmomatic (http://www.usadellab.org/cms/?page=trimmomatic)
-FLASH (http://ccb.jhu.edu/software/FLASH/)
-EMBOSS water aligner (http://emboss.sourceforge.net/)
-Enrich (http://depts.washington.edu/sfields/software/enrich/)
+- Trimmomatic (http://www.usadellab.org/cms/?page=trimmomatic)
+- FLASH (http://ccb.jhu.edu/software/FLASH/)
+- EMBOSS water aligner (http://emboss.sourceforge.net/)
+- Enrich (http://depts.washington.edu/sfields/software/enrich/)
