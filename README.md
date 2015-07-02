@@ -1,6 +1,6 @@
-#Maynard-2015
+##Maynard-2015
 
-Summary of the experiment:
+###Summary of the experiment:
 Antigen genes were subjected to error-prone PCR.
 The resulting libraries were displayed on the surface of yeast.
 Yeast libraries were sorted by flow cytometry on the basis of
@@ -9,7 +9,7 @@ Plasmid DNA was isolated from sorted yeast.
 Isolated antigen genes were fragmented and sequenced with
 250-nt paired-end Illumina reads.
 
-Summary of the analysis goals:
+###Summary of the analysis goals:
 We would like to count the abundance of each mutation in the
 library before and after selection.
 These counts will be used to calculate enrichment scores
@@ -29,7 +29,7 @@ randomly sheared library and creates a new fake .fastq
 file that is compatible with Enrich.
 
 
-To run:
+###To run:
 We have provided a makefile that automatically runs the
 pipeline. The paths will need to be modified to make it
 work on your computer.
@@ -39,7 +39,7 @@ make
 ```
 
 
-Algorithm:
+###Algorithm:
 1. Reads are trimmed with Trimmomatic to remove Illumina
 adapter sequences and low-quality bases.
 2. Read pairs that overlap are merged with FLASH.
@@ -76,7 +76,7 @@ wild-type sequence.
 
 
 
-The script calls the following software:
+###The script calls the following software:
 Trimmomatic (http://www.usadellab.org/cms/?page=trimmomatic)
 FLASH (http://ccb.jhu.edu/software/FLASH/)
 EMBOSS water aligner (http://emboss.sourceforge.net/)
