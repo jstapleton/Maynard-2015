@@ -1,4 +1,5 @@
-##Maynard-2015
+##Wang, Stapleton, Klesmith, Hewlett, Whitehead, an Maynard
+##Fine epitope mapping of two antibodies neutralizing the Bordetella adenylate cyclase toxin 
 
 ###Summary of the experiment:
 Antigen genes were subjected to error-prone PCR.
