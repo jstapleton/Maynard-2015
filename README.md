@@ -1,4 +1,4 @@
-##Wang, Stapleton, Klesmith, Hewlett, Whitehead, an Maynard
+##Wang, Stapleton, Klesmith, Hewlett, Whitehead, and Maynard
 ##Fine epitope mapping of two antibodies neutralizing the Bordetella adenylate cyclase toxin 
 
 ###Summary of the experiment:
