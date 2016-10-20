@@ -8,7 +8,7 @@ Yeast libraries were sorted by flow cytometry on the basis of
 fluorescently conjugated antibody binding.
 Plasmid DNA was isolated from sorted yeast.
 Isolated antigen genes were fragmented and sequenced with
-250-nt paired-end Illumina reads.
+125-nt paired-end Illumina reads.
 
 ###Summary of the analysis goals:
 We would like to count the abundance of each mutation in the
